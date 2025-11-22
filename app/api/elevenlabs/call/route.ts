@@ -15,19 +15,47 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    // Try the correct ElevenLabs Conversational AI endpoint
-    // Documentation: https://elevenlabs.io/docs/conversational-ai/api-reference
-    const response = await fetch(`https://api.elevenlabs.io/v1/convai/conversations`, {
-      method: 'POST',
+    // ElevenLabs Conversational AI - Signed URL method
+    // First get a signed URL for the agent
+    const signedUrlResponse = await fetch(`https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`, {
+      method: 'GET',
       headers: {
-        'xi-api-key': ELEVENLABS_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        agent_id: agentId,
-        phone_number: phoneNumber
-      })
+        'xi-api-key': ELEVENLABS_API_KEY
+      }
     });
+
+    if (!signedUrlResponse.ok) {
+      const errorData = await signedUrlResponse.json();
+      console.error('Signed URL error:', errorData);
+      return NextResponse.json({ 
+        error: 'Failed to get agent URL. Check your Agent ID.',
+        details: errorData,
+        hint: 'Make sure you saved your agent in ElevenLabs and copied the correct Agent ID from the URL'
+      }, { status: signedUrlResponse.status });
+    }
+
+    const { signed_url } = await signedUrlResponse.json();
+
+    // For now, return the signed URL that can be used to initiate conversation
+    // Note: ElevenLabs Conversational AI currently requires WebSocket connection for real-time calls
+    // Outbound calling via API requires enterprise plan or specific setup
+    
+    return NextResponse.json({
+      success: true,
+      signed_url,
+      message: 'Agent URL generated. Note: Outbound calling requires ElevenLabs enterprise plan or Twilio integration.',
+      hint: 'For production: Set up Twilio → ElevenLabs webhook integration for full outbound calling'
+    });
+
+  } catch (error: any) {
+    console.error('Outbound call error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to make call',
+      details: error.message,
+      hint: 'Check server logs for more details'
+    }, { status: 500 });
+  }
+}
 
     const responseText = await response.text();
     console.log('ElevenLabs response:', response.status, responseText);
