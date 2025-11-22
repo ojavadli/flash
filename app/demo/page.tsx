@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Phone, Mic, MicOff, PhoneOff, Volume2, User } from "lucide-react";
+import { Phone, Mic, MicOff, PhoneOff, Volume2, User, Zap } from "lucide-react";
 
 type CallState = "idle" | "ringing" | "active" | "ended";
 type Message = { role: "user" | "agent"; text: string; timestamp: Date };
@@ -12,6 +12,7 @@ export default function LiveDemoPage() {
   const [isListening, setIsListening] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState("");
   const [callDuration, setCallDuration] = useState(0);
+  const [voiceQuality, setVoiceQuality] = useState<"browser" | "professional">("professional");
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -27,13 +28,15 @@ export default function LiveDemoPage() {
     setCallState("ringing");
     setTimeout(() => {
       setCallState("active");
+      const greeting = "Hello! Thank you for calling Flash AI. I'm your intelligent assistant. How can I help you today?";
       setMessages([{
         role: "agent",
-        text: "Hello! Thank you for calling Flash AI. I'm your intelligent assistant. How can I help you today?",
+        text: greeting,
         timestamp: new Date()
       }]);
-      // Simulate agent speaking
-      speakText("Hello! Thank you for calling Flash AI. I'm your intelligent assistant. How can I help you today?");
+      
+      // Play professional voice sample
+      playProfessionalVoice(greeting);
     }, 2000);
   };
 
@@ -51,10 +54,36 @@ export default function LiveDemoPage() {
   const toggleListening = () => {
     if (!isListening) {
       setIsListening(true);
-      // Simulate speech recognition
       simulateSpeechRecognition();
     } else {
       setIsListening(false);
+    }
+  };
+
+  const playProfessionalVoice = (text: string) => {
+    // In production, this would call ElevenLabs or PlayHT API
+    // For demo, we use enhanced browser voice with better settings
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Try to find a better voice
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoices = voices.filter(voice => 
+        voice.name.includes('Samantha') || 
+        voice.name.includes('Google') ||
+        voice.name.includes('Natural') ||
+        voice.lang.includes('en-US')
+      );
+      
+      if (preferredVoices.length > 0) {
+        utterance.voice = preferredVoices[0];
+      }
+      
+      utterance.rate = 0.95;
+      utterance.pitch = 1.05;
+      utterance.volume = 1.0;
+      
+      window.speechSynthesis.speak(utterance);
     }
   };
 
@@ -69,7 +98,6 @@ export default function LiveDemoPage() {
     
     const phrase = userPhrases[Math.floor(Math.random() * userPhrases.length)];
     
-    // Simulate typing effect
     let currentText = "";
     const words = phrase.split(" ");
     let wordIndex = 0;
@@ -81,7 +109,6 @@ export default function LiveDemoPage() {
         wordIndex++;
       } else {
         clearInterval(typeInterval);
-        // Add to messages
         setMessages(prev => [...prev, {
           role: "user",
           text: phrase,
@@ -90,10 +117,9 @@ export default function LiveDemoPage() {
         setCurrentTranscript("");
         setIsListening(false);
         
-        // Generate AI response
-        setTimeout(() => generateAIResponse(phrase), 1000);
+        setTimeout(() => generateAIResponse(phrase), 800);
       }
-    }, 200);
+    }, 150);
   };
 
   const generateAIResponse = (userInput: string) => {
@@ -120,17 +146,7 @@ export default function LiveDemoPage() {
       timestamp: new Date()
     }]);
 
-    speakText(response);
-  };
-
-  const speakText = (text: string) => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      utterance.volume = 1.0;
-      window.speechSynthesis.speak(utterance);
-    }
+    playProfessionalVoice(response);
   };
 
   const formatDuration = (seconds: number) => {
@@ -142,9 +158,17 @@ export default function LiveDemoPage() {
   return (
     <div className="min-h-screen bg-black p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Flash AI - Live Demo</h1>
-          <p className="text-white/60">Experience our AI phone system in action</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">Flash AI - Live Demo</h1>
+            <p className="text-white/60">Experience our AI phone system in action</p>
+          </div>
+          <div className="px-4 py-2 rounded-full bg-yellow-500/20 border border-yellow-500/40 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-yellow-400" />
+            <span className="text-sm text-yellow-400 font-medium">
+              Demo Mode - Using browser voice (Add ElevenLabs API for professional voice)
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -198,7 +222,7 @@ export default function LiveDemoPage() {
                 {callState === "idle" && (
                   <button
                     onClick={startCall}
-                    className="w-20 h-20 rounded-full bg-green-600 hover:bg-green-500 flex items-center justify-center transition-all hover:scale-110"
+                    className="w-20 h-20 rounded-full bg-green-600 hover:bg-green-500 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-green-600/50"
                   >
                     <Phone className="w-10 h-10 text-white" />
                   </button>
@@ -223,7 +247,7 @@ export default function LiveDemoPage() {
 
                     <button
                       onClick={endCall}
-                      className="w-20 h-20 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center transition-all hover:scale-110"
+                      className="w-20 h-20 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-red-600/50"
                     >
                       <PhoneOff className="w-10 h-10 text-white" />
                     </button>
@@ -300,26 +324,33 @@ export default function LiveDemoPage() {
           </div>
         </div>
 
-        {/* Features */}
-        <div className="mt-8 p-6 rounded-2xl bg-white/5 border border-white/10">
-          <h3 className="text-xl font-bold text-white mb-4">What You're Seeing</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-lg bg-black/20">
-              <div className="text-green-400 font-semibold mb-2">✓ Speech Recognition</div>
-              <div className="text-sm text-white/60">Real-time voice-to-text conversion</div>
+        {/* API Information */}
+        <div className="mt-8 p-6 rounded-2xl bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+          <h3 className="text-xl font-bold text-white mb-4">Professional Voice APIs Needed</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-4 rounded-lg bg-black/40">
+              <div className="text-blue-400 font-semibold mb-2">🎙️ Speech-to-Text</div>
+              <div className="text-sm text-white/80 mb-2">Deepgram or AssemblyAI</div>
+              <div className="text-xs text-white/40">Real-time transcription with 95%+ accuracy</div>
             </div>
-            <div className="p-4 rounded-lg bg-black/20">
-              <div className="text-green-400 font-semibold mb-2">✓ AI Processing</div>
-              <div className="text-sm text-white/60">Intelligent context-aware responses</div>
+            <div className="p-4 rounded-lg bg-black/40">
+              <div className="text-purple-400 font-semibold mb-2">🔊 Text-to-Speech</div>
+              <div className="text-sm text-white/80 mb-2">ElevenLabs or PlayHT</div>
+              <div className="text-xs text-white/40">Ultra-realistic human-like voices</div>
             </div>
-            <div className="p-4 rounded-lg bg-black/20">
-              <div className="text-green-400 font-semibold mb-2">✓ Text-to-Speech</div>
-              <div className="text-sm text-white/60">Natural voice synthesis</div>
+            <div className="p-4 rounded-lg bg-black/40">
+              <div className="text-green-400 font-semibold mb-2">🤖 AI Brain</div>
+              <div className="text-sm text-white/80 mb-2">OpenAI GPT-4 or Anthropic Claude</div>
+              <div className="text-xs text-white/40">Intelligent conversation handling</div>
             </div>
+          </div>
+          <div className="mt-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+            <p className="text-yellow-400 text-sm">
+              <strong>Ready to go live?</strong> Provide API keys for these services and Flash will handle real phone calls with professional-quality voices. Current demo uses browser synthesis for demonstration only.
+            </p>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
