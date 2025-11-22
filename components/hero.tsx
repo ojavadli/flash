@@ -19,7 +19,7 @@ export function Hero() {
           transition={{ duration: 0.5 }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8 hover:bg-white/10 transition-colors cursor-pointer"
         >
-          <span className="text-sm font-medium text-white">Flash secures $61M in funding</span>
+          <span className="text-sm font-medium text-white">Now accepting real phone calls with AI</span>
           <ArrowRight className="w-4 h-4 text-white/50" />
         </motion.div>
 
@@ -31,10 +31,10 @@ export function Hero() {
           className="text-6xl md:text-8xl font-bold tracking-tight text-white mb-6 leading-[0.95]"
         >
           <span className="bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
-            AI that speaks naturally.
+            AI Phone System
           </span>
           <br />
-          <span className="text-white/30">Powers millions of conversations.</span>
+          <span className="text-white/30">Handle calls intelligently</span>
         </motion.h1>
 
         {/* Subheading */}
@@ -44,7 +44,7 @@ export function Hero() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="text-xl md:text-2xl text-white/60 mb-12 max-w-3xl mx-auto"
         >
-          AI agents for enterprise customer service
+          Connect your phone number and let AI handle customer calls with natural conversation
         </motion.p>
 
         {/* CTA Button */}

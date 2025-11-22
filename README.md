@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Flash AI IVR System
 
-## Getting Started
+A fully functional AI-powered Interactive Voice Response (IVR) system built with Next.js, Twilio, and OpenAI.
 
-First, run the development server:
+## Features
+
+- **Real Phone Call Handling**: Accept and process actual phone calls via Twilio
+- **AI-Powered Conversations**: Uses OpenAI GPT-4 for intelligent responses
+- **Speech Recognition**: Converts caller speech to text in real-time
+- **Text-to-Speech**: Responds to callers with natural-sounding voice
+- **Call Analytics**: Track and analyze all conversations
+- **Visual Workflow Builder**: Design call flows with drag-and-drop interface
+- **Real-time Monitoring**: See active calls and transcripts live
+
+## Setup
+
+### Prerequisites
+
+1. **Twilio Account**: Sign up at [twilio.com](https://www.twilio.com/try-twilio)
+   - Get a phone number
+   - Note your Account SID and Auth Token
+
+2. **OpenAI API Key**: Get one at [platform.openai.com](https://platform.openai.com/api-keys)
+
+### Installation
+
+```bash
+npm install
+```
+
+### Configuration
+
+1. Copy `.env.example` to `.env.local`:
+```bash
+cp .env.example .env.local
+```
+
+2. Fill in your credentials in `.env.local`
+
+3. Configure Twilio webhook:
+   - In Twilio Console, go to your phone number settings
+   - Set "A Call Comes In" webhook to: `https://your-domain.com/api/voice/incoming`
+   - Method: HTTP POST
+
+### Running
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit `http://localhost:5555/setup` to configure your system.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How It Works
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Incoming Call**: Twilio receives a call and sends webhook to `/api/voice/incoming`
+2. **Speech Recognition**: Caller's speech is converted to text
+3. **AI Processing**: Text is sent to OpenAI GPT-4 for intelligent response
+4. **Text-to-Speech**: AI response is converted back to speech
+5. **Response**: Caller hears the AI's response
+6. **Loop**: Process continues until call ends
 
-## Learn More
+## API Endpoints
 
-To learn more about Next.js, take a look at the following resources:
+- `POST /api/voice/incoming` - Handles incoming calls
+- `POST /api/voice/process` - Processes speech and generates AI responses
+- `WS /api/voice/stream` - WebSocket for real-time audio streaming
+- `POST /api/setup/test` - Tests API credentials
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Next.js 16** - React framework
+- **Twilio** - Phone system and voice API
+- **OpenAI GPT-4** - AI conversation engine
+- **TypeScript** - Type-safe development
+- **WebSockets** - Real-time audio streaming
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
