@@ -29,7 +29,8 @@ export function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-4">
-          <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition-colors">Sign in</Link>
+          <Link href="/demo" className="text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">Try Demo</Link>
+          <Link href="/dashboard" className="text-sm font-medium text-white/70 hover:text-white transition-colors">Dashboard</Link>
           <Link href="/contact" className="px-6 py-2.5 rounded-full bg-white text-black text-sm font-semibold hover:bg-gray-100 transition-colors">
             Contact Us
           </Link>
