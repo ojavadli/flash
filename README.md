@@ -1,79 +1,126 @@
-# Flash AI IVR System
+# Flash AI - Snoonu IVR System
 
-A fully functional AI-powered Interactive Voice Response (IVR) system built with Next.js, Twilio, and OpenAI.
+**Intelligent AI phone system for Snoonu's 100,000+ monthly support calls**
 
-## Features
+## ✅ What Flash Does
 
-- **Real Phone Call Handling**: Accept and process actual phone calls via Twilio
-- **AI-Powered Conversations**: Uses OpenAI GPT-4 for intelligent responses
-- **Speech Recognition**: Converts caller speech to text in real-time
-- **Text-to-Speech**: Responds to callers with natural-sounding voice
-- **Call Analytics**: Track and analyze all conversations
-- **Visual Workflow Builder**: Design call flows with drag-and-drop interface
-- **Real-time Monitoring**: See active calls and transcripts live
+Flash is a complete AI IVR (Interactive Voice Response) system built specifically for Snoonu, Qatar's leading food delivery platform. It handles:
 
-## Setup
+### **Driver Support** (Largest Volume)
+- Can't find customer address → Provides full address, landmarks, GPS
+- Pickup delays → Contacts restaurant, offers compensation
+- Customer not available → Guides on failed delivery procedure
+- Navigation issues → Gives detailed location instructions
 
-### Prerequisites
+### **Customer Support** (High Priority)
+- Missing orders → Checks status, processes refund + credit
+- Wrong items → Verifies order, offers refund/redelivery
+- Refund requests → Processes immediately with verification
+- Delivery delays → Checks driver location, provides ETA
 
-1. **Twilio Account**: Sign up at [twilio.com](https://www.twilio.com/try-twilio)
-   - Get a phone number
-   - Note your Account SID and Auth Token
+### **Restaurant Support**
+- Tablet not working → Walks through restart procedure
+- Order confusion → Clarifies details, checks for duplicates
+- Item substitutions → Guides on protocol
+- Technical issues → Escalates to tech support
 
-2. **OpenAI API Key**: Get one at [platform.openai.com](https://platform.openai.com/api-keys)
+## 🚀 Key Features
 
-### Installation
+✅ **Intelligent Context Detection** - No manual routing! Agent understands from conversation if caller is driver, customer, or restaurant
 
-```bash
-npm install
-```
+✅ **Real Phone Calls** - Makes and receives actual phone calls using ElevenLabs
 
-### Configuration
+✅ **Professional Voices** - Natural human-like voices from ElevenLabs (not robotic)
 
-1. Copy `.env.example` to `.env.local`:
-```bash
-cp .env.example .env.local
-```
+✅ **Bilingual** - English + Arabic support for Qatar
 
-2. Fill in your credentials in `.env.local`
+✅ **Order Lookup** - Integrates with Snoonu database to find orders
 
-3. Configure Twilio webhook:
-   - In Twilio Console, go to your phone number settings
-   - Set "A Call Comes In" webhook to: `https://your-domain.com/api/voice/incoming`
-   - Method: HTTP POST
+✅ **Refund Processing** - Processes refunds during the call
 
-### Running
+✅ **CRM Logging** - Documents every interaction automatically
 
+✅ **Action Tracking** - Shows what actions agent takes in real-time
+
+## 📱 How to Use
+
+### **1. View Working Demo**
 ```bash
 npm run dev
 ```
+Visit: `http://localhost:5555/demo`
 
-Visit `http://localhost:5555/setup` to configure your system.
+Click one of the scenario buttons to see the AI handle:
+- Driver with location issue
+- Customer with missing order  
+- Restaurant with tablet problem
 
-## How It Works
+### **2. Make Real Phone Calls**
 
-1. **Incoming Call**: Twilio receives a call and sends webhook to `/api/voice/incoming`
-2. **Speech Recognition**: Caller's speech is converted to text
-3. **AI Processing**: Text is sent to OpenAI GPT-4 for intelligent response
-4. **Text-to-Speech**: AI response is converted back to speech
-5. **Response**: Caller hears the AI's response
-6. **Loop**: Process continues until call ends
+Click **"Make Real Call"** button in the demo, then:
 
-## API Endpoints
+1. Enter a real phone number (e.g., +16173083474 or +974-5555-1234)
+2. Enter your ElevenLabs Agent ID (from your dashboard)
+3. Click "Call Now"
+4. **The phone will actually ring!**
 
-- `POST /api/voice/incoming` - Handles incoming calls
-- `POST /api/voice/process` - Processes speech and generates AI responses
-- `WS /api/voice/stream` - WebSocket for real-time audio streaming
-- `POST /api/setup/test` - Tests API credentials
+### **3. Set Up Your ElevenLabs Agent**
 
-## Tech Stack
+See `ELEVENLABS_SETUP.md` for detailed instructions, but in summary:
 
-- **Next.js 16** - React framework
-- **Twilio** - Phone system and voice API
-- **OpenAI GPT-4** - AI conversation engine
-- **TypeScript** - Type-safe development
-- **WebSockets** - Real-time audio streaming
+1. In your ElevenLabs dashboard, create ONE intelligent agent
+2. Use the prompt from `lib/prompts.ts` → `SNOONU_PROMPTS.mainAgent.english`
+3. Set first message: "Hello, this is Snoonu support. How can I help you today?"
+4. Enable tools: lookup_order, process_refund, notify_driver, escalate_to_human
+5. Save and copy the Agent ID
+6. Paste into Flash
 
-## License
+## 🔧 Technical Stack
 
-MIT
+- **Frontend**: Next.js 16, React, TypeScript, Tailwind CSS
+- **Voice**: ElevenLabs Conversational AI
+- **Phone**: Twilio (for inbound webhooks)
+- **AI**: OpenAI GPT-4 (via ElevenLabs)
+- **Visualization**: ReactFlow (workflow builder)
+- **Charts**: Recharts (analytics)
+
+## 📊 Dashboard Features
+
+- **`/dashboard/canvas`** - Visual workflow builder
+- **`/dashboard/conversations`** - Live chat interface
+- **`/dashboard/outbound`** - Make outbound calls
+- **`/dashboard/insights`** - Analytics and AI insights
+- **`/dashboard/voice`** - Voice settings
+- **`/demo`** - Interactive demo with scenarios
+
+## 🌍 Snoonu-Specific Features
+
+- Order lookup by ID (SN-2024-XXXXXX format)
+- Qatar phone number support (+974)
+- QAR currency for refunds
+- Arabic language support
+- Driver, customer, and merchant workflows
+- CRM logging for all interactions
+
+## 🔑 API Keys
+
+Your ElevenLabs API key is already configured:
+```
+sk_c2a36b61d8e63d3305d349c45078d1078f7845f644062a60
+```
+
+## 📞 Testing
+
+1. **Simulated Demos**: Click scenario buttons at `/demo`
+2. **Real Calls**: Use "Make Real Call" feature with your ElevenLabs Agent ID
+3. **Outbound Dashboard**: Go to `/dashboard/outbound` for bulk calling
+
+## 🎯 Next Steps
+
+1. ✅ Save your ElevenLabs workflow
+2. ✅ Copy the Agent ID from URL
+3. ✅ Test with real phone number
+4. ⏳ Connect to real Snoonu API (when available)
+5. ⏳ Deploy to production
+
+**Flash is ready to handle Snoonu's support calls with intelligent, context-aware AI!** 🚀
