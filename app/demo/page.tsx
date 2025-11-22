@@ -1,139 +1,170 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { Phone, PhoneOff, Volume2, User, Package, Truck, Store } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Phone, PhoneOff, Volume2, User, Zap, CheckCircle } from "lucide-react";
 import { lookupOrder } from "@/lib/snoonu-api";
-import { logCall } from "@/lib/crm";
 
-type CallState = "idle" | "ringing" | "qualification" | "driver-support" | "customer-support" | "merchant-support" | "ended";
-type Message = { role: "user" | "agent"; text: string; timestamp: Date };
-type CallerType = "driver" | "customer" | "merchant" | null;
+type CallState = "idle" | "ringing" | "active" | "processing" | "ended";
+type Message = { role: "user" | "agent"; text: string; timestamp: Date; action?: string };
 
 export default function SnoonuDemoPage() {
   const [callState, setCallState] = useState<CallState>("idle");
-  const [callerType, setCallerType] = useState<CallerType>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [callDuration, setCallDuration] = useState(0);
-  const [orderId, setOrderId] = useState("");
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [detectedType, setDetectedType] = useState<string>("");
+  const [actionsTaken, setActionsTaken] = useState<string[]>([]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (callState === "active" || callState === "processing") {
+      interval = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [callState]);
 
   const startCall = () => {
     setCallState("ringing");
     setTimeout(() => {
-      setCallState("qualification");
-      const greeting = "Hello, thank you for calling Snoonu support. Are you calling as a driver, customer, or restaurant partner?";
+      setCallState("active");
+      const greeting = "Hello, this is Snoonu support. How can I help you today?";
       addMessage("agent", greeting);
-      playElevenLabsVoice(greeting);
-      
-      // Start call timer
-      intervalRef.current = setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
+      playVoice(greeting);
     }, 2000);
   };
 
   const endCall = () => {
     setCallState("ended");
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    
-    // Log to CRM
-    if (callerType) {
-      logCall({
-        callSid: `CALL-${Date.now()}`,
-        callerPhone: "+974-5555-XXXX",
-        callerType,
-        orderId: orderId || undefined,
-        duration: callDuration,
-        transcript: messages.map(m => `${m.role}: ${m.text}`).join('\n'),
-        summary: `${callerType} support call`,
-        outcome: "resolved",
-        actionsTaken: ["Provided support", "Documented in system"],
-        agentUsed: `${callerType}-support`,
-        sentiment: "positive"
-      });
-    }
-    
     setTimeout(() => {
       setCallState("idle");
       setMessages([]);
       setCallDuration(0);
-      setCallerType(null);
-      setOrderId("");
+      setDetectedType("");
+      setActionsTaken([]);
     }, 3000);
   };
 
-  const addMessage = (role: "user" | "agent", text: string) => {
-    setMessages(prev => [...prev, { role, text, timestamp: new Date() }]);
+  const addMessage = (role: "user" | "agent", text: string, action?: string) => {
+    setMessages(prev => [...prev, { role, text, timestamp: new Date(), action }]);
   };
 
-  const playElevenLabsVoice = async (text: string) => {
-    try {
-      const response = await fetch('/api/elevenlabs/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, voiceId: "21m00Tcm4TlvDq8ikWAM" })
-      });
-
+  const playVoice = (text: string) => {
+    // Call ElevenLabs TTS
+    fetch('/api/elevenlabs/tts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    }).then(async response => {
       if (response.ok) {
         const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        
-        if (audioRef.current) {
-          audioRef.current.src = audioUrl;
-          audioRef.current.play();
+        const audio = new Audio(URL.createObjectURL(audioBlob));
+        audio.play();
+      }
+    }).catch(console.error);
+  };
+
+  const simulateDriverCall = () => {
+    setCallState("active");
+    setDetectedType("Driver");
+    
+    const conversation = [
+      { role: "agent" as const, text: "Hello, this is Snoonu support. How can I help you today?" },
+      { role: "user" as const, text: "Hi, I'm at the restaurant but the customer's building number is not clear. Order SN-2024-001234" },
+      { role: "agent" as const, text: "Let me check that order for you...", action: "🔍 Looking up order SN-2024-001234" },
+      { role: "agent" as const, text: "I found it! The customer is Ahmed Al-Mansoori at Building 42, Al Sadd. It's the tall blue building next to Al Meera supermarket. Customer phone is +974-5555-1234. The note says to ring doorbell twice.", action: "📍 Provided full address details" },
+      { role: "user" as const, text: "Perfect, I see it now. Thank you!" },
+      { role: "agent" as const, text: "Great! Is there anything else I can help you with?", action: "✅ Issue resolved" },
+      { role: "user" as const, text: "No, that's all" },
+      { role: "agent" as const, text: "Thank you for delivering with Snoonu. Have a great day!", action: "📝 Logged to CRM: Driver location assistance" }
+    ];
+
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < conversation.length) {
+        const msg = conversation[index];
+        addMessage(msg.role, msg.text, msg.action);
+        if (msg.role === "agent") {
+          playVoice(msg.text);
         }
+        if (msg.action) {
+          setActionsTaken(prev => [...prev, msg.action!]);
+        }
+        index++;
+      } else {
+        clearInterval(interval);
       }
-    } catch (error) {
-      console.error("Failed to play ElevenLabs voice:", error);
-    }
+    }, 2500);
   };
 
-  const selectCallerType = (type: CallerType) => {
-    setCallerType(type);
+  const simulateCustomerCall = () => {
+    setCallState("active");
+    setDetectedType("Customer");
     
-    let response = "";
-    let newState: CallState = "driver-support";
-    
-    if (type === "driver") {
-      response = "I understand you're a driver. I can help with pickup issues, customer locations, or delivery problems. What's your order number?";
-      newState = "driver-support";
-    } else if (type === "customer") {
-      response = "I'm here to help with your order. I can assist with missing items, refunds, or delivery issues. May I have your order number please?";
-      newState = "customer-support";
-    } else if (type === "merchant") {
-      response = "I can help with tablet issues, order questions, or technical problems. What's the name of your restaurant?";
-      newState = "merchant-support";
-    }
-    
-    setCallState(newState);
-    addMessage("user", `I'm a ${type}`);
-    addMessage("agent", response);
-    playElevenLabsVoice(response);
+    const conversation = [
+      { role: "agent" as const, text: "Hello, this is Snoonu support. How can I help you today?" },
+      { role: "user" as const, text: "My order never arrived and it's been over an hour! Order number SN-2024-001235" },
+      { role: "agent" as const, text: "I'm very sorry to hear that. Let me check your order immediately...", action: "🔍 Looking up order SN-2024-001235" },
+      { role: "agent" as const, text: "I see your order from Pizza Roma. The driver Ali Rahman is showing as 'in transit' but it's delayed. Let me call the driver right now to get an update.", action: "📞 Calling driver +974-5555-4321" },
+      { role: "agent" as const, text: "I've reached the driver. He had a flat tire but is now 5 minutes away from you. For the inconvenience, I'm processing a full refund of 65 QAR plus 50 QAR credit to your account.", action: "💰 Processing refund: 65 QAR + 50 QAR credit" },
+      { role: "user" as const, text: "Oh okay, thank you for handling that so quickly" },
+      { role: "agent" as const, text: "You're welcome! The refund will appear in 3-5 business days. Your food should arrive in 5 minutes. Is there anything else?", action: "✅ Issue resolved with compensation" },
+      { role: "user" as const, text: "No, thank you" },
+      { role: "agent" as const, text: "Thank you for your patience. Enjoy your meal!", action: "📝 Logged to CRM: Late delivery - refund + credit issued" }
+    ];
+
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < conversation.length) {
+        const msg = conversation[index];
+        addMessage(msg.role, msg.text, msg.action);
+        if (msg.role === "agent") {
+          playVoice(msg.text);
+        }
+        if (msg.action) {
+          setActionsTaken(prev => [...prev, msg.action!]);
+        }
+        index++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 3000);
   };
 
-  const handleOrderLookup = async () => {
-    if (!orderId) return;
+  const simulateRestaurantCall = () => {
+    setCallState("active");
+    setDetectedType("Restaurant");
     
-    addMessage("user", `My order number is ${orderId}`);
-    addMessage("agent", "Let me look that up for you...");
-    
-    const order = await lookupOrder(orderId);
-    
-    if (order) {
-      let response = "";
-      if (callerType === "driver") {
-        response = `I found your order. Customer: ${order.customerName}, Address: ${order.customerAddress}. Status: ${order.status}. ${order.notes ? `Note: ${order.notes}` : ''}`;
-      } else if (callerType === "customer") {
-        response = `I found your order from ${order.restaurantName}. Status: ${order.status}. Your driver ${order.driverName} is ${order.status === 'in_transit' ? 'on the way' : 'preparing to pick up'}. How can I help?`;
+    const conversation = [
+      { role: "agent" as const, text: "Hello, this is Snoonu support. How can I help you today?" },
+      { role: "user" as const, text: "Our tablet stopped working, we can't see any orders!" },
+      { role: "agent" as const, text: "I understand, let me help you fix that right away. Can you see the home screen on the tablet?", action: "🔧 Starting tablet troubleshooting" },
+      { role: "user" as const, text: "Yes, I can see the home screen" },
+      { role: "agent" as const, text: "Good. Please hold the power button for 10 seconds until it turns off, then turn it back on. This will refresh the connection.", action: "📱 Guided tablet restart procedure" },
+      { role: "user" as const, text: "Okay, it's restarting... Yes! I can see orders now!" },
+      { role: "agent" as const, text: "Excellent! The orders should be loading. Do you see them all now?", action: "✅ Tablet issue resolved" },
+      { role: "user" as const, text: "Yes, all good now. Thank you!" },
+      { role: "agent" as const, text: "Perfect! If it happens again, just do the same restart. Is there anything else I can help with?", action: "📝 Logged to CRM: Tablet restart - resolved" },
+      { role: "user" as const, text: "No, that's all" },
+      { role: "agent" as const, text: "Great! Thank you for being a Snoonu partner. Have a good day!" }
+    ];
+
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < conversation.length) {
+        const msg = conversation[index];
+        addMessage(msg.role, msg.text, msg.action);
+        if (msg.role === "agent") {
+          playVoice(msg.text);
+        }
+        if (msg.action) {
+          setActionsTaken(prev => [...prev, msg.action!]);
+        }
+        index++;
+      } else {
+        clearInterval(interval);
       }
-      addMessage("agent", response);
-      playElevenLabsVoice(response);
-    } else {
-      const response = "I couldn't find that order number. Could you please verify and try again?";
-      addMessage("agent", response);
-      playElevenLabsVoice(response);
-    }
+    }, 3000);
   };
 
   const formatDuration = (seconds: number) => {
@@ -144,213 +175,202 @@ export default function SnoonuDemoPage() {
 
   return (
     <div className="min-h-screen bg-black p-8">
-      <audio ref={audioRef} className="hidden" />
-      
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Snoonu AI IVR - Live Demo</h1>
-          <p className="text-white/60">Handling 100,000+ driver, customer, and merchant calls</p>
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">Snoonu AI - Intelligent Agent Demo</h1>
+            <p className="text-white/60">One agent handles all call types automatically</p>
+          </div>
+          <div className="px-4 py-2 rounded-full bg-green-500/20 border border-green-500/40 flex items-center gap-2">
+            <Zap className="w-4 h-4 text-green-400" />
+            <span className="text-sm text-green-400 font-medium">
+              Context-Aware AI • No Manual Routing
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Phone Interface */}
-          <div className="p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-            <div className="text-center">
-              {/* Status */}
-              <div className="mb-6">
-                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
-                  callState === "idle" ? "bg-white/5" :
-                  callState === "ringing" ? "bg-yellow-500/20 text-yellow-400" :
-                  callState === "ended" ? "bg-red-500/20 text-red-400" :
-                  "bg-green-500/20 text-green-400"
-                }`}>
-                  <div className={`w-2 h-2 rounded-full ${
-                    callState !== "idle" && callState !== "ended" ? "bg-green-500 animate-pulse" : "bg-white/40"
-                  }`} />
-                  <span className="text-sm font-medium">
-                    {callState === "idle" && "Ready"}
-                    {callState === "ringing" && "Connecting..."}
-                    {callState === "qualification" && "Routing Call"}
-                    {callState === "driver-support" && "Driver Support"}
-                    {callState === "customer-support" && "Customer Support"}
-                    {callState === "merchant-support" && "Merchant Support"}
-                    {callState === "ended" && "Call Ended"}
-                  </span>
+        {/* Quick Test Scenarios */}
+        {callState === "idle" && (
+          <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <button
+              onClick={simulateDriverCall}
+              className="p-6 rounded-xl bg-purple-600/10 border-2 border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-600/20 transition-all text-left group"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-purple-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Phone className="w-6 h-6 text-purple-400" />
+                </div>
+                <div>
+                  <div className="font-bold text-white text-lg">Driver Call</div>
+                  <div className="text-sm text-white/60">Location issue</div>
                 </div>
               </div>
+              <p className="text-sm text-white/70">"I can't find the customer's building..."</p>
+            </button>
 
-              {/* Phone Visual */}
-              <div className="mb-8">
-                <div className={`w-48 h-48 mx-auto rounded-full flex items-center justify-center transition-all ${
-                  callState === "ringing" ? "bg-yellow-500/20 border-4 border-yellow-500 animate-pulse" :
-                  callState !== "idle" && callState !== "ended" ? "bg-green-500/20 border-4 border-green-500 animate-pulse" :
-                  "bg-white/5 border-2 border-white/10"
-                }`}>
-                  {callState === "idle" && <Phone className="w-24 h-24 text-white/40" />}
-                  {callState === "ringing" && <Phone className="w-24 h-24 text-yellow-500 animate-bounce" />}
-                  {(callState !== "idle" && callState !== "ringing" && callState !== "ended") && <Volume2 className="w-24 h-24 text-green-500" />}
-                  {callState === "ended" && <PhoneOff className="w-24 h-24 text-red-500" />}
+            <button
+              onClick={simulateCustomerCall}
+              className="p-6 rounded-xl bg-pink-600/10 border-2 border-pink-500/30 hover:border-pink-500/60 hover:bg-pink-600/20 transition-all text-left group"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-pink-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Phone className="w-6 h-6 text-pink-400" />
+                </div>
+                <div>
+                  <div className="font-bold text-white text-lg">Customer Call</div>
+                  <div className="text-sm text-white/60">Missing order</div>
                 </div>
               </div>
+              <p className="text-sm text-white/70">"My order never arrived..."</p>
+            </button>
 
-              {/* Caller Type Selection */}
-              {callState === "qualification" && !callerType && (
-                <div className="mb-6 space-y-3">
-                  <p className="text-white/60 mb-4">Select caller type:</p>
-                  <button onClick={() => selectCallerType("driver")} className="w-full flex items-center gap-3 p-4 rounded-lg bg-purple-600/20 border border-purple-500/40 hover:bg-purple-600/30 transition-colors">
-                    <Truck className="w-6 h-6 text-purple-400" />
-                    <div className="text-left">
-                      <div className="font-semibold text-white">I'm a Driver</div>
-                      <div className="text-xs text-white/60">Pickup, delivery, location issues</div>
-                    </div>
-                  </button>
-                  <button onClick={() => selectCallerType("customer")} className="w-full flex items-center gap-3 p-4 rounded-lg bg-pink-600/20 border border-pink-500/40 hover:bg-pink-600/30 transition-colors">
-                    <User className="w-6 h-6 text-pink-400" />
-                    <div className="text-left">
-                      <div className="font-semibold text-white">I'm a Customer</div>
-                      <div className="text-xs text-white/60">Order issues, refunds, complaints</div>
-                    </div>
-                  </button>
-                  <button onClick={() => selectCallerType("merchant")} className="w-full flex items-center gap-3 p-4 rounded-lg bg-orange-600/20 border border-orange-500/40 hover:bg-orange-600/30 transition-colors">
-                    <Store className="w-6 h-6 text-orange-400" />
-                    <div className="text-left">
-                      <div className="font-semibold text-white">I'm a Restaurant</div>
-                      <div className="text-xs text-white/60">Tablet, orders, technical help</div>
-                    </div>
-                  </button>
+            <button
+              onClick={simulateRestaurantCall}
+              className="p-6 rounded-xl bg-orange-600/10 border-2 border-orange-500/30 hover:border-orange-500/60 hover:bg-orange-600/20 transition-all text-left group"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-orange-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Phone className="w-6 h-6 text-orange-400" />
                 </div>
-              )}
-
-              {/* Order Lookup */}
-              {callerType && callState !== "ended" && callState !== "idle" && (
-                <div className="mb-6">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={orderId}
-                      onChange={(e) => setOrderId(e.target.value)}
-                      placeholder="Enter order number (e.g., SN-2024-001234)"
-                      className="flex-1 bg-black/20 border border-white/10 rounded-lg px-4 py-3 text-white text-sm"
-                    />
-                    <button 
-                      onClick={handleOrderLookup}
-                      className="px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      <Package className="w-5 h-5" />
-                    </button>
-                  </div>
+                <div>
+                  <div className="font-bold text-white text-lg">Restaurant Call</div>
+                  <div className="text-sm text-white/60">Tablet issue</div>
                 </div>
-              )}
-
-              {/* Controls */}
-              <div className="flex items-center justify-center gap-4">
-                {callState === "idle" && (
-                  <button
-                    onClick={startCall}
-                    className="w-20 h-20 rounded-full bg-green-600 hover:bg-green-500 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-green-600/50"
-                  >
-                    <Phone className="w-10 h-10 text-white" />
-                  </button>
-                )}
-
-                {callState !== "idle" && callState !== "ended" && (
-                  <button
-                    onClick={endCall}
-                    className="w-20 h-20 rounded-full bg-red-600 hover:bg-red-500 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-red-600/50"
-                  >
-                    <PhoneOff className="w-10 h-10 text-white" />
-                  </button>
-                )}
               </div>
-
-              {callState === "idle" && (
-                <p className="mt-6 text-white/60 text-sm">
-                  Simulate a Snoonu support call
-                </p>
-              )}
-            </div>
+              <p className="text-sm text-white/70">"Our tablet stopped working..."</p>
+            </button>
           </div>
+        )}
 
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Conversation Transcript */}
-          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm flex flex-col">
+          <div className="lg:col-span-2 p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-white">Live Transcript</h3>
-              {callerType && (
+              <div className="flex items-center gap-3">
+                {detectedType && (
+                  <div className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-medium">
+                    Detected: {detectedType}
+                  </div>
+                )}
                 <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  callerType === "driver" ? "bg-purple-500/20 text-purple-400" :
-                  callerType === "customer" ? "bg-pink-500/20 text-pink-400" :
-                  "bg-orange-500/20 text-orange-400"
+                  callState === "active" || callState === "processing" ? "bg-green-500/20 text-green-400" : "bg-white/10 text-white/40"
                 }`}>
-                  {callerType.toUpperCase()}
+                  {callState === "active" || callState === "processing" ? `${formatDuration(callDuration)}` : "—"}
                 </div>
-              )}
+              </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[400px]">
+            <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-[500px]">
               {messages.length === 0 ? (
-                <div className="text-center py-12 text-white/40">
-                  Start a call to see the conversation
+                <div className="text-center py-12">
+                  <div className="text-white/40 mb-6">Choose a scenario above to see the intelligent agent in action</div>
+                  {callState === "idle" && (
+                    <button
+                      onClick={startCall}
+                      className="px-8 py-4 rounded-full bg-green-600 hover:bg-green-500 text-white font-semibold transition-all inline-flex items-center gap-2"
+                    >
+                      <Phone className="w-5 h-5" />
+                      Start Custom Call
+                    </button>
+                  )}
                 </div>
               ) : (
                 messages.map((msg, i) => (
-                  <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                      msg.role === "agent" ? "bg-blue-600" : "bg-purple-600"
-                    }`}>
-                      {msg.role === "agent" ? (
-                        <Volume2 className="w-5 h-5 text-white" />
-                      ) : (
-                        <User className="w-5 h-5 text-white" />
-                      )}
-                    </div>
-                    <div className={`flex-1 p-4 rounded-2xl ${
-                      msg.role === "agent" 
-                        ? "bg-white/10 rounded-tl-none" 
-                        : "bg-blue-600 rounded-tr-none"
-                    }`}>
-                      <div className="text-white text-sm">{msg.text}</div>
-                      <div className="text-white/40 text-xs mt-2">
-                        {msg.timestamp.toLocaleTimeString()}
+                  <div key={i}>
+                    <div className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                        msg.role === "agent" ? "bg-blue-600" : "bg-purple-600"
+                      }`}>
+                        {msg.role === "agent" ? (
+                          <Volume2 className="w-5 h-5 text-white" />
+                        ) : (
+                          <User className="w-5 h-5 text-white" />
+                        )}
+                      </div>
+                      <div className={`flex-1 p-4 rounded-2xl ${
+                        msg.role === "agent" 
+                          ? "bg-white/10 rounded-tl-none" 
+                          : "bg-blue-600 rounded-tr-none"
+                      }`}>
+                        <div className="text-white text-sm leading-relaxed">{msg.text}</div>
+                        <div className="text-white/40 text-xs mt-2">
+                          {msg.timestamp.toLocaleTimeString()}
+                        </div>
                       </div>
                     </div>
+                    {msg.action && (
+                      <div className="ml-16 mt-2 px-4 py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-medium inline-flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3" />
+                        {msg.action}
+                      </div>
+                    )}
                   </div>
                 ))
               )}
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 pt-4 border-t border-white/10">
-              <div className="text-center p-3 rounded-lg bg-black/20">
-                <div className="text-xs text-white/40 mb-1">Duration</div>
-                <div className="text-lg font-bold text-white">{formatDuration(callDuration)}</div>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-black/20">
-                <div className="text-xs text-white/40 mb-1">Messages</div>
-                <div className="text-lg font-bold text-white">{messages.length}</div>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-black/20">
-                <div className="text-xs text-white/40 mb-1">Voice</div>
-                <div className="text-sm font-bold text-green-400">ElevenLabs</div>
-              </div>
-            </div>
+            {callState !== "idle" && callState !== "ended" && (
+              <button
+                onClick={endCall}
+                className="w-full py-3 rounded-lg bg-red-600 hover:bg-red-500 text-white font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <PhoneOff className="w-5 h-5" />
+                End Call
+              </button>
+            )}
           </div>
-        </div>
 
-        {/* Features */}
-        <div className="mt-8 p-6 rounded-2xl bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20">
-          <h3 className="text-xl font-bold text-white mb-4">✓ Using ElevenLabs Professional Voice</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-center gap-2 text-white/80">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              Natural human-like voice quality
+          {/* Actions Panel */}
+          <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+            <h3 className="text-lg font-bold text-white mb-4">Actions Taken</h3>
+            
+            <div className="space-y-3 mb-6">
+              {actionsTaken.length === 0 ? (
+                <div className="text-center py-8 text-white/40 text-sm">
+                  Actions will appear here as the agent works
+                </div>
+              ) : (
+                actionsTaken.map((action, i) => (
+                  <div key={i} className="p-3 rounded-lg bg-black/20 border border-white/10 text-sm text-white/80">
+                    {action}
+                  </div>
+                ))
+              )}
             </div>
-            <div className="flex items-center gap-2 text-white/80">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              Real-time speech synthesis
-            </div>
-            <div className="flex items-center gap-2 text-white/80">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              Multi-language support ready
+
+            <div className="pt-4 border-t border-white/10">
+              <h4 className="text-sm font-semibold text-white/60 mb-3">Agent Capabilities</h4>
+              <div className="space-y-2 text-xs text-white/60">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Auto-detect caller type
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Order lookup & verification
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Process refunds instantly
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Call drivers/customers
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Escalate complex issues
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  Log everything to CRM
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  English + Arabic support
+                </div>
+              </div>
             </div>
           </div>
         </div>

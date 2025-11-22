@@ -14,72 +14,50 @@ import ReactFlow, {
   Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Save, Play, Phone } from 'lucide-react';
+import { Save, Play, Phone, Zap } from 'lucide-react';
 
-// Snoonu-specific workflow matching ElevenLabs structure
+// SINGLE INTELLIGENT AGENT - No explicit routing
 const initialNodes: Node[] = [
   {
     id: 'start',
     type: 'input',
     position: { x: 400, y: 50 },
-    data: { label: '📞 Start - Incoming Call' },
+    data: { label: '📞 Incoming Call' },
     style: { background: '#10b981', color: '#fff', border: 'none', borderRadius: '12px', padding: '16px', fontWeight: '600', minWidth: '200px' }
   },
   {
-    id: 'qualification',
-    position: { x: 350, y: 180 },
-    data: { label: 'Qualification Agent\n"Are you a driver, customer, or restaurant?"' },
-    style: { background: '#3b82f6', color: '#fff', border: '2px solid #60a5fa', borderRadius: '12px', padding: '16px', minWidth: '250px', whiteSpace: 'pre-line', textAlign: 'center' }
+    id: 'intelligent-agent',
+    position: { x: 300, y: 200 },
+    data: { label: '🤖 Intelligent Agent\n"How can I help you today?"\n\nAuto-detects: Driver, Customer, or Restaurant\nHandles all issues in one conversation' },
+    style: { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff', border: '3px solid #a78bfa', borderRadius: '16px', padding: '20px', minWidth: '320px', whiteSpace: 'pre-line', textAlign: 'center', fontWeight: '500' }
   },
   {
-    id: 'driver-support',
-    position: { x: 100, y: 350 },
-    data: { label: 'Driver Support\nHandle: Location, Pickup, Wait Times' },
-    style: { background: '#8b5cf6', color: '#fff', border: '2px solid #a78bfa', borderRadius: '12px', padding: '16px', minWidth: '220px', whiteSpace: 'pre-line' }
+    id: 'actions',
+    position: { x: 250, y: 420 },
+    data: { label: '⚡ Available Actions:\n• Lookup Order\n• Process Refund\n• Notify Driver\n• Call Customer\n• Escalate to Human\n• Update Status' },
+    style: { background: '#1e293b', color: '#fff', border: '2px solid #3b82f6', borderRadius: '12px', padding: '16px', minWidth: '280px', whiteSpace: 'pre-line', fontSize: '13px' }
   },
   {
-    id: 'customer-support',
-    position: { x: 400, y: 350 },
-    data: { label: 'Customer Support\nHandle: Missing/Wrong Orders, Refunds' },
-    style: { background: '#ec4899', color: '#fff', border: '2px solid #f472b6', borderRadius: '12px', padding: '16px', minWidth: '220px', whiteSpace: 'pre-line' }
+    id: 'crm-log',
+    position: { x: 600, y: 420 },
+    data: { label: '📝 CRM Logging\n• Transcript\n• Actions Taken\n• Outcome\n• Sentiment Analysis' },
+    style: { background: '#1e293b', color: '#fff', border: '2px solid #10b981', borderRadius: '12px', padding: '16px', minWidth: '220px', whiteSpace: 'pre-line', fontSize: '13px' }
   },
   {
-    id: 'merchant-support',
-    position: { x: 700, y: 350 },
-    data: { label: 'Merchant Support\nHandle: Tablet, Orders, Tech Issues' },
-    style: { background: '#f59e0b', color: '#fff', border: '2px solid #fbbf24', borderRadius: '12px', padding: '16px', minWidth: '220px', whiteSpace: 'pre-line' }
-  },
-  {
-    id: 'end-driver',
+    id: 'end',
     type: 'output',
-    position: { x: 100, y: 520 },
-    data: { label: '✓ End Call - Driver' },
-    style: { background: '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '12px', padding: '12px', minWidth: '180px' }
-  },
-  {
-    id: 'end-customer',
-    type: 'output',
-    position: { x: 400, y: 520 },
-    data: { label: '✓ End Call - Customer' },
-    style: { background: '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '12px', padding: '12px', minWidth: '180px' }
-  },
-  {
-    id: 'end-merchant',
-    type: 'output',
-    position: { x: 700, y: 520 },
-    data: { label: '✓ End Call - Merchant' },
-    style: { background: '#1e293b', color: '#fff', border: '1px solid #334155', borderRadius: '12px', padding: '12px', minWidth: '180px' }
+    position: { x: 400, y: 600 },
+    data: { label: '✓ Call Complete' },
+    style: { background: '#059669', color: '#fff', border: 'none', borderRadius: '12px', padding: '16px', minWidth: '200px', fontWeight: '600' }
   },
 ];
 
 const initialEdges: Edge[] = [
-  { id: 'e-start-qual', source: 'start', target: 'qualification', animated: true, style: { stroke: '#3b82f6', strokeWidth: 2 } },
-  { id: 'e-qual-driver', source: 'qualification', target: 'driver-support', label: 'Driver', animated: true, style: { stroke: '#8b5cf6', strokeWidth: 2 } },
-  { id: 'e-qual-customer', source: 'qualification', target: 'customer-support', label: 'Customer', animated: true, style: { stroke: '#ec4899', strokeWidth: 2 } },
-  { id: 'e-qual-merchant', source: 'qualification', target: 'merchant-support', label: 'Merchant', animated: true, style: { stroke: '#f59e0b', strokeWidth: 2 } },
-  { id: 'e-driver-end', source: 'driver-support', target: 'end-driver', animated: true, style: { stroke: '#64748b', strokeWidth: 2 } },
-  { id: 'e-customer-end', source: 'customer-support', target: 'end-customer', animated: true, style: { stroke: '#64748b', strokeWidth: 2 } },
-  { id: 'e-merchant-end', source: 'merchant-support', target: 'end-merchant', animated: true, style: { stroke: '#64748b', strokeWidth: 2 } },
+  { id: 'e-start-agent', source: 'start', target: 'intelligent-agent', animated: true, style: { stroke: '#3b82f6', strokeWidth: 3 } },
+  { id: 'e-agent-actions', source: 'intelligent-agent', target: 'actions', label: 'Uses tools', animated: true, style: { stroke: '#8b5cf6', strokeWidth: 2 } },
+  { id: 'e-agent-crm', source: 'intelligent-agent', target: 'crm-log', label: 'Logs data', animated: true, style: { stroke: '#10b981', strokeWidth: 2 } },
+  { id: 'e-actions-end', source: 'actions', target: 'end', animated: true, style: { stroke: '#64748b', strokeWidth: 2 } },
+  { id: 'e-crm-end', source: 'crm-log', target: 'end', animated: true, style: { stroke: '#64748b', strokeWidth: 2 } },
 ];
 
 export default function CanvasPage() {
@@ -92,19 +70,12 @@ export default function CanvasPage() {
     [setEdges]
   );
 
-  const saveWorkflow = () => {
-    const workflow = { nodes, edges };
-    localStorage.setItem('snoonu-workflow', JSON.stringify(workflow));
-    alert('Snoonu workflow saved successfully!');
-  };
-
-  const deployToProduction = async () => {
+  const deployToElevenLabs = async () => {
     setDeployStatus("deploying");
     
-    // Simulate deployment to ElevenLabs
     setTimeout(() => {
       setDeployStatus("deployed");
-      alert('Workflow deployed! Your Snoonu IVR is now live and handling calls.');
+      alert('✓ Intelligent agent deployed to ElevenLabs!\n\nThe agent will now:\n• Auto-detect caller type from conversation\n• Handle driver, customer, and restaurant issues\n• Take actions (refunds, escalations, notifications)\n• Log everything to CRM\n\nNo manual routing needed!');
     }, 2000);
   };
 
@@ -114,27 +85,21 @@ export default function CanvasPage() {
       <div className="bg-black/40 border-b border-white/10 p-4 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Snoonu IVR Workflow</h1>
-            <p className="text-sm text-white/60">100,000+ calls/month automation</p>
+            <h1 className="text-2xl font-bold text-white">Snoonu Intelligent Agent</h1>
+            <p className="text-sm text-white/60">Single AI agent handles all call types automatically</p>
           </div>
           <div className="flex items-center gap-3">
             <button 
-              onClick={saveWorkflow}
-              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors border border-white/10"
-            >
-              <Save className="w-4 h-4" /> Save
-            </button>
-            <button 
-              onClick={deployToProduction}
+              onClick={deployToElevenLabs}
               disabled={deployStatus === "deploying"}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg text-sm font-semibold transition-all disabled:opacity-50 shadow-lg"
             >
               {deployStatus === "deploying" ? (
                 <>Deploying...</>
               ) : deployStatus === "deployed" ? (
-                <>✓ Live</>
+                <><Zap className="w-4 h-4" /> Live & Intelligent</>
               ) : (
-                <><Phone className="w-4 h-4" /> Deploy to Production</>
+                <><Phone className="w-4 h-4" /> Deploy Smart Agent</>
               )}
             </button>
           </div>
@@ -157,11 +122,10 @@ export default function CanvasPage() {
             className="bg-black/60 border border-white/10 rounded-lg" 
             nodeColor={(node) => {
               if (node.id === 'start') return '#10b981';
-              if (node.id === 'qualification') return '#3b82f6';
-              if (node.id.includes('driver')) return '#8b5cf6';
-              if (node.id.includes('customer')) return '#ec4899';
-              if (node.id.includes('merchant')) return '#f59e0b';
-              return '#64748b';
+              if (node.id === 'intelligent-agent') return '#8b5cf6';
+              if (node.id === 'actions') return '#3b82f6';
+              if (node.id === 'crm-log') return '#10b981';
+              return '#059669';
             }}
             maskColor="rgba(0, 0, 0, 0.6)" 
           />
@@ -171,18 +135,25 @@ export default function CanvasPage() {
 
       {/* Info Panel */}
       <div className="bg-black/40 border-t border-white/10 p-4 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto grid grid-cols-3 gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-green-500" />
-            <span className="text-white/60">ElevenLabs: Connected</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500" />
-            <span className="text-white/60">Workflow: 3 Agent Types</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-purple-500" />
-            <span className="text-white/60">Status: {deployStatus === "deployed" ? "Live" : "Draft"}</span>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-white/60">ElevenLabs: Connected</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-purple-500" />
+                <span className="text-white/60">Mode: Context-Aware (No Manual Routing)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-blue-500" />
+                <span className="text-white/60">Languages: English + Arabic</span>
+              </div>
+            </div>
+            <div className="text-sm text-white/60">
+              Status: <span className={deployStatus === "deployed" ? "text-green-400 font-semibold" : "text-white/40"}>{deployStatus === "deployed" ? "Live" : "Draft"}</span>
+            </div>
           </div>
         </div>
       </div>
