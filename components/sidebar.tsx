@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Network, MessageSquare, BarChart, Mic, Settings } from "lucide-react";
+import { LayoutDashboard, Network, MessageSquare, BarChart, Mic, Settings, Phone } from "lucide-react";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -11,6 +11,7 @@ export function Sidebar() {
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
     { name: "Agent Builder", href: "/dashboard/canvas", icon: Network },
     { name: "Conversations", href: "/dashboard/conversations", icon: MessageSquare },
+    { name: "Outbound Calls", href: "/dashboard/outbound", icon: Phone },
     { name: "Analytics", href: "/dashboard/insights", icon: BarChart },
     { name: "Voice AI", href: "/dashboard/voice", icon: Mic },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
