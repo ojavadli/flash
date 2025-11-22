@@ -20,16 +20,44 @@ export async function POST(req: Request) {
 
     console.log(`📞 Incoming call from ${from} to ${to}, CallSid: ${callSid}`);
 
-    // Simple TwiML response that connects to ElevenLabs
-    // Using direct Say for now since Stream requires more setup
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    // Get ElevenLabs agent signed URL
+    const agentId = "agent_4401kant80mjf05rz880hfjk4rmp";
+    
+    const signedUrlResponse = await fetch(
+      `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=${agentId}`,
+      {
+        method: 'GET',
+        headers: {
+          'xi-api-key': ELEVENLABS_API_KEY
+        }
+      }
+    );
+
+    if (!signedUrlResponse.ok) {
+      console.error('❌ Failed to get ElevenLabs signed URL');
+      // Fallback to Twilio voice
+      const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Joanna">Hello, this is Snoonu support. How can I help you today?</Say>
   <Gather input="speech" action="https://flash-production-3b0c.up.railway.app/api/twilio/process" method="POST" speechTimeout="auto">
     <Say voice="Polly.Joanna">Please tell me about your issue.</Say>
   </Gather>
-  <Say voice="Polly.Joanna">I didn't catch that. Please try again.</Say>
-  <Redirect>https://flash-production-3b0c.up.railway.app/api/twilio/incoming</Redirect>
+  <Hangup/>
+</Response>`;
+      return new NextResponse(fallbackTwiml, {
+        headers: { 'Content-Type': 'text/xml' }
+      });
+    }
+
+    const { signed_url } = await signedUrlResponse.json();
+    console.log('✅ Got ElevenLabs signed URL, connecting...');
+
+    // Connect Twilio call to ElevenLabs agent via WebSocket Stream
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Connect>
+    <Stream url="${signed_url}" />
+  </Connect>
 </Response>`;
 
     return new NextResponse(twiml, {
