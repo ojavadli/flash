@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Phone, PhoneOff, Volume2, User, Zap, CheckCircle } from "lucide-react";
+import { Phone, PhoneOff, Volume2, User, Zap, CheckCircle, PhoneCall, Loader2 } from "lucide-react";
 import { lookupOrder } from "@/lib/snoonu-api";
 
 type CallState = "idle" | "ringing" | "active" | "processing" | "ended";
@@ -13,6 +13,13 @@ export default function SnoonuDemoPage() {
   const [callDuration, setCallDuration] = useState(0);
   const [detectedType, setDetectedType] = useState<string>("");
   const [actionsTaken, setActionsTaken] = useState<string[]>([]);
+  
+  // Real calling feature
+  const [showRealCallModal, setShowRealCallModal] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [agentId, setAgentId] = useState("");
+  const [isCallingReal, setIsCallingReal] = useState(false);
+  const [realCallStatus, setRealCallStatus] = useState("");
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -23,6 +30,45 @@ export default function SnoonuDemoPage() {
     }
     return () => clearInterval(interval);
   }, [callState]);
+
+  const makeRealCall = async () => {
+    if (!phoneNumber || !agentId) {
+      alert("Please enter both phone number and agent ID");
+      return;
+    }
+
+    setIsCallingReal(true);
+    setRealCallStatus("Initiating call...");
+
+    try {
+      const response = await fetch('/api/elevenlabs/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId,
+          phoneNumber,
+          message: "This is Snoonu support. We're calling to assist you."
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setRealCallStatus(`✓ Call initiated! Conversation ID: ${data.conversationId}`);
+        setTimeout(() => {
+          setShowRealCallModal(false);
+          setIsCallingReal(false);
+          setRealCallStatus("");
+        }, 5000);
+      } else {
+        setRealCallStatus(`✗ Error: ${data.error}`);
+        setIsCallingReal(false);
+      }
+    } catch (error: any) {
+      setRealCallStatus(`✗ Error: ${error.message}`);
+      setIsCallingReal(false);
+    }
+  };
 
   const startCall = () => {
     setCallState("ringing");
@@ -50,7 +96,6 @@ export default function SnoonuDemoPage() {
   };
 
   const playVoice = (text: string) => {
-    // Call ElevenLabs TTS
     fetch('/api/elevenlabs/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -181,13 +226,110 @@ export default function SnoonuDemoPage() {
             <h1 className="text-4xl font-bold text-white mb-2">Snoonu AI - Intelligent Agent Demo</h1>
             <p className="text-white/60">One agent handles all call types automatically</p>
           </div>
-          <div className="px-4 py-2 rounded-full bg-green-500/20 border border-green-500/40 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-green-400" />
-            <span className="text-sm text-green-400 font-medium">
-              Context-Aware AI • No Manual Routing
-            </span>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowRealCallModal(true)}
+              className="px-6 py-3 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-semibold transition-all shadow-lg flex items-center gap-2"
+            >
+              <PhoneCall className="w-5 h-5" />
+              Make Real Call
+            </button>
+            <div className="px-4 py-2 rounded-full bg-green-500/20 border border-green-500/40 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-green-400" />
+              <span className="text-sm text-green-400 font-medium">
+                Context-Aware AI
+              </span>
+            </div>
           </div>
         </div>
+
+        {/* Real Call Modal */}
+        {showRealCallModal && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+            <div className="max-w-lg w-full p-8 rounded-2xl bg-black border-2 border-white/20">
+              <h2 className="text-2xl font-bold text-white mb-6">Make Real Phone Call</h2>
+              
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm text-white/60 mb-2">Phone Number to Call</label>
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="+974-5555-1234 or +1-234-567-8900"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-lg"
+                  />
+                  <p className="text-xs text-white/40 mt-1">
+                    Enter a real phone number - it will actually ring!
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-white/60 mb-2">ElevenLabs Agent ID (optional)</label>
+                  <input
+                    type="text"
+                    value={agentId}
+                    onChange={(e) => setAgentId(e.target.value)}
+                    placeholder="agent_4401kant80mjf05rz880hfjk4rmp"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white text-sm"
+                  />
+                  <p className="text-xs text-white/40 mt-1">
+                    Leave empty to use default Snoonu agent
+                  </p>
+                </div>
+              </div>
+
+              {realCallStatus && (
+                <div className={`mb-6 p-4 rounded-lg ${
+                  realCallStatus.startsWith('✓') 
+                    ? 'bg-green-500/10 border border-green-500/20 text-green-400' 
+                    : realCallStatus.startsWith('✗')
+                    ? 'bg-red-500/10 border border-red-500/20 text-red-400'
+                    : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
+                }`}>
+                  {realCallStatus}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowRealCallModal(false);
+                    setRealCallStatus("");
+                    setIsCallingReal(false);
+                  }}
+                  disabled={isCallingReal}
+                  className="flex-1 px-6 py-3 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={makeRealCall}
+                  disabled={isCallingReal || !phoneNumber}
+                  className="flex-1 px-6 py-3 rounded-lg bg-green-600 hover:bg-green-500 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isCallingReal ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Calling...
+                    </>
+                  ) : (
+                    <>
+                      <PhoneCall className="w-5 h-5" />
+                      Call Now
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="mt-6 p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                <p className="text-xs text-yellow-400">
+                  <strong>Note:</strong> This will use your ElevenLabs API credits. The phone will actually ring and the AI agent will speak when answered.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Test Scenarios */}
         {callState === "idle" && (
