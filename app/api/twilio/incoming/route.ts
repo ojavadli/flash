@@ -37,15 +37,8 @@ export async function POST(req: Request) {
 
     if (!signedUrlResponse.ok) {
       console.error('❌ Failed to get ElevenLabs signed URL');
-      // Fallback to Twilio voice
-      const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="Polly.Joanna">Hello, this is Snoonu support. How can I help you today?</Say>
-  <Gather input="speech" action="https://flash-production-3b0c.up.railway.app/api/twilio/process" method="POST" speechTimeout="auto">
-    <Say voice="Polly.Joanna">Please tell me about your issue.</Say>
-  </Gather>
-  <Hangup/>
-</Response>`;
+      // Fallback to Twilio voice - no whitespace
+      const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna">Hello, this is Snoonu support. How can I help you today?</Say><Gather input="speech" action="https://flash-production-3b0c.up.railway.app/api/twilio/process" method="POST" speechTimeout="auto"><Say voice="Polly.Joanna">Please tell me about your issue.</Say></Gather><Hangup/></Response>`;
       return new NextResponse(fallbackTwiml, {
         headers: { 'Content-Type': 'text/xml' }
       });
@@ -55,12 +48,8 @@ export async function POST(req: Request) {
     console.log('✅ Got ElevenLabs signed URL, connecting...');
 
     // Connect Twilio call to ElevenLabs agent via WebSocket Stream
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Connect>
-    <Stream url="${signed_url}" />
-  </Connect>
-</Response>`;
+    // Important: No extra whitespace or Twilio returns "Document parse failure"
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Connect><Stream url="${signed_url}"/></Connect></Response>`;
 
     return new NextResponse(twiml, {
       headers: { 'Content-Type': 'text/xml' }
@@ -69,11 +58,7 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('❌ Twilio webhook error:', error);
     
-    const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="Polly.Joanna">We apologize for the technical difficulty. Please try your call again in a moment.</Say>
-  <Hangup/>
-</Response>`;
+    const errorTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna">We apologize for the technical difficulty. Please try your call again in a moment.</Say><Hangup/></Response>`;
 
     return new NextResponse(errorTwiml, {
       headers: { 'Content-Type': 'text/xml' }
