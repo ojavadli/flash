@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     }
 
     console.log(`📞 Initiating outbound call to ${phoneNumber}`);
+    console.log(`Twilio SID exists: ${!!TWILIO_ACCOUNT_SID}, Token exists: ${!!TWILIO_AUTH_TOKEN}`);
 
     // Make outbound call using Twilio
     // The call will connect to our webhook which connects to ElevenLabs
