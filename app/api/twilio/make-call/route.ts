@@ -5,8 +5,6 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || "+18774126670";
 
-const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-
 export async function POST(req: Request) {
   try {
     const { phoneNumber, message } = await req.json();
@@ -19,6 +17,16 @@ export async function POST(req: Request) {
 
     console.log(`📞 Initiating outbound call to ${phoneNumber}`);
     console.log(`Twilio SID exists: ${!!TWILIO_ACCOUNT_SID}, Token exists: ${!!TWILIO_AUTH_TOKEN}`);
+
+    if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN) {
+      return NextResponse.json({
+        error: 'Twilio credentials not configured',
+        details: 'TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN environment variables are missing'
+      }, { status: 500 });
+    }
+
+    // Initialize Twilio client
+    const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
     // Make outbound call using Twilio
     // The call will connect to our webhook which connects to ElevenLabs
