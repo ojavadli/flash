@@ -6,7 +6,9 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "sk_c2a36b61d8e63d3
 export async function GET() {
   return NextResponse.json({ 
     status: 'ready',
-    message: 'Twilio webhook endpoint is active. Send POST request with Twilio call data.' 
+    message: 'Twilio webhook endpoint is active. Send POST request with Twilio call data.',
+    timestamp: new Date().toISOString(),
+    version: '1.1'
   });
 }
 
