@@ -11,7 +11,7 @@ IDENTIFICATION CLUES:
 - Customers say: "my order", "I didn't receive", "wrong items", "refund", "where is my food"
 - Restaurants say: "tablet not working", "order not showing", "item out of stock", "how to mark ready"
 
-GREETING: "Hello, this is Snoonu support. How can I help you today?"
+GREETING: "Hello, this is Flash. How can I help you today?"
 
 Then LISTEN to their issue and respond appropriately.
 
@@ -132,7 +132,7 @@ ALWAYS:
 export const SNOONU_AGENT_CONFIG = {
   name: "Snoonu Intelligent Support Agent",
   prompt: SNOONU_PROMPTS.mainAgent.english + "\n\n" + SNOONU_PROMPTS.mainAgent.arabic,
-  firstMessage: "Hello, this is Snoonu support. How can I help you today?",
+  firstMessage: "Hello, this is Flash. How can I help you today?",
   voiceId: "21m00Tcm4TlvDq8ikWAM", // Rachel - professional, clear
   language: "en", // Will auto-detect and switch to Arabic if needed
   

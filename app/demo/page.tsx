@@ -48,6 +48,9 @@ export default function SnoonuDemoPage() {
   const agentId = "agent_4401kant80mjf05rz880hfjk4rmp"; // Hardcoded Flash agent
   const [isCallingReal, setIsCallingReal] = useState(false);
   const [realCallStatus, setRealCallStatus] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -75,7 +78,7 @@ export default function SnoonuDemoPage() {
         body: JSON.stringify({
           agentId,
           phoneNumber,
-          message: "This is Snoonu support. We're calling to assist you."
+          message: "This is Flash. We're calling to assist you with your Snoonu delivery."
         })
       });
 
@@ -98,14 +101,131 @@ export default function SnoonuDemoPage() {
     }
   };
 
-  const startCustomCall = () => {
+  // Initialize speech recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognitionInstance = new SpeechRecognition();
+        recognitionInstance.continuous = false;
+        recognitionInstance.interimResults = false;
+        recognitionInstance.lang = selectedLang === 'ar' ? 'ar-QA' : selectedLang === 'ur' ? 'ur-PK' : selectedLang === 'hi' ? 'hi-IN' : 'en-US';
+        
+        recognitionInstance.onresult = async (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setIsListening(false);
+          addMessage("user", transcript);
+          await getAIResponse(transcript);
+        };
+        
+        recognitionInstance.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsListening(false);
+          // Auto-restart listening if call is still active
+          if (callState === "active" && !isProcessing) {
+            setTimeout(() => startListening(recognitionInstance), 1000);
+          }
+        };
+        
+        recognitionInstance.onend = () => {
+          setIsListening(false);
+          // Auto-restart listening if call is still active
+          if (callState === "active" && !isProcessing) {
+            setTimeout(() => startListening(recognitionInstance), 500);
+          }
+        };
+        
+        setRecognition(recognitionInstance);
+      }
+    }
+  }, [selectedLang]);
+
+  const startListening = (rec: any) => {
+    if (rec && callState === "active" && !isProcessing) {
+      try {
+        rec.start();
+        setIsListening(true);
+      } catch (e) {
+        // Already started
+      }
+    }
+  };
+
+  const getAIResponse = async (userMessage: string) => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [
+            { role: 'system', content: 'You are Flash, an AI voice assistant for Snoonu delivery platform in Qatar. Keep responses brief (1-2 sentences). Help with order issues, delivery problems, and customer support. Be friendly and professional.' },
+            ...messages.map(m => ({ role: m.role === 'agent' ? 'assistant' : 'user', content: m.text })),
+            { role: 'user', content: userMessage }
+          ]
+        })
+      });
+      
+      const data = await response.json();
+      const aiResponse = data.response || "I apologize, I didn't catch that. Could you please repeat?";
+      
+      addMessage("agent", aiResponse);
+      await playVoiceAsync(aiResponse);
+      
+      // Check for call ending phrases
+      const endPhrases = ['goodbye', 'bye', 'thank you', 'thanks', 'that\'s all', 'nothing else'];
+      if (endPhrases.some(phrase => userMessage.toLowerCase().includes(phrase))) {
+        setTimeout(() => endCall(), 2000);
+      } else {
+        // Continue listening
+        if (recognition) {
+          setTimeout(() => startListening(recognition), 500);
+        }
+      }
+    } catch (error) {
+      console.error('AI response error:', error);
+      const fallback = "I'm having trouble processing that. Could you repeat?";
+      addMessage("agent", fallback);
+      await playVoiceAsync(fallback);
+      if (recognition) {
+        setTimeout(() => startListening(recognition), 500);
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const playVoiceAsync = (text: string): Promise<void> => {
+    return new Promise((resolve) => {
+      fetch('/api/elevenlabs/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      }).then(async response => {
+        if (response.ok) {
+          const audioBlob = await response.blob();
+          const audio = new Audio(URL.createObjectURL(audioBlob));
+          audio.onended = () => resolve();
+          audio.play();
+        } else {
+          resolve();
+        }
+      }).catch(() => resolve());
+    });
+  };
+
+  const startCustomCall = async () => {
     setCallState("ringing");
     setDetectedType("Custom");
-    setTimeout(() => {
+    setTimeout(async () => {
       setCallState("active");
-      const greeting = "Hello, this is Snoonu support. How can I help you today?";
+      const greeting = "Hello, this is Flash support for Snoonu. How can I help you today?";
       addMessage("agent", greeting);
-      playVoice(greeting);
+      await playVoiceAsync(greeting);
+      // Start listening after greeting
+      if (recognition) {
+        startListening(recognition);
+      }
     }, 1500);
   };
 
@@ -143,7 +263,7 @@ export default function SnoonuDemoPage() {
     setDetectedType("Driver");
     
     const conversation = [
-      { role: "agent" as const, text: "Hello, this is Snoonu support. How can I help you today?" },
+      { role: "agent" as const, text: "Hello, this is Flash. How can I help you today?" },
       { role: "user" as const, text: "Hi, I'm at the restaurant but the customer's building number is not clear. Order SN-2024-001234" },
       { role: "agent" as const, text: "Let me check that order for you...", action: "🔍 Order lookup" },
       { role: "agent" as const, text: "I found it! Building 42, Al Sadd. Blue building next to Al Meera. Customer phone: +974-5555-1234.", action: "📍 Location sent" },
@@ -172,7 +292,7 @@ export default function SnoonuDemoPage() {
     setDetectedType("Customer");
     
     const conversation = [
-      { role: "agent" as const, text: "Hello, Snoonu support. How can I help?" },
+      { role: "agent" as const, text: "Hello, this is Flash. How can I help?" },
       { role: "user" as const, text: "My order never arrived! Order SN-2024-001235" },
       { role: "agent" as const, text: "I'm very sorry. Let me check immediately...", action: "🔍 Order lookup" },
       { role: "agent" as const, text: "Driver Ali had a flat tire. He's 5 minutes away. Processing full refund + 50 QAR credit.", action: "💰 Refund: 65 QAR + 50 credit" },
@@ -201,7 +321,7 @@ export default function SnoonuDemoPage() {
     setDetectedType("Restaurant");
     
     const conversation = [
-      { role: "agent" as const, text: "Hello, Snoonu support. How can I help?" },
+      { role: "agent" as const, text: "Hello, this is Flash. How can I help?" },
       { role: "user" as const, text: "Our tablet stopped working!" },
       { role: "agent" as const, text: "I'll help fix that. Can you see the home screen?", action: "🔧 Troubleshooting" },
       { role: "user" as const, text: "Yes, I can see it" },
@@ -624,7 +744,7 @@ export default function SnoonuDemoPage() {
             </button>
 
             <p className="mt-4 text-xs text-gray-400 text-center">
-              Uses ElevenLabs API credits
+              Uses AI voice credits
             </p>
           </div>
         </div>

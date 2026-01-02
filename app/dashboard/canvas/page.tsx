@@ -75,7 +75,7 @@ export default function CanvasPage() {
     
     setTimeout(() => {
       setDeployStatus("deployed");
-      alert('✓ Intelligent agent deployed to ElevenLabs!\n\nThe agent will now:\n• Auto-detect caller type from conversation\n• Handle driver, customer, and restaurant issues\n• Take actions (refunds, escalations, notifications)\n• Log everything to CRM\n\nNo manual routing needed!');
+      alert('✓ Intelligent agent deployed!\n\nThe agent will now:\n• Auto-detect caller type from conversation\n• Handle driver, customer, and restaurant issues\n• Take actions (refunds, escalations, notifications)\n• Log everything to CRM\n\nNo manual routing needed!');
     }, 2000);
   };
 
@@ -140,7 +140,7 @@ export default function CanvasPage() {
             <div className="flex items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-white/60">ElevenLabs: Connected</span>
+                <span className="text-white/60">Voice AI: Connected</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-purple-500" />

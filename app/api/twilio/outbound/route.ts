@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
     if (!signedUrlResponse.ok) {
       console.error('❌ Failed to get ElevenLabs signed URL for outbound call');
-      const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna">Hello, this is Snoonu support calling. How can we help you?</Say><Pause length="2"/><Hangup/></Response>`;
+      const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna">Hello, this is Flash calling. How can we help you?</Say><Pause length="2"/><Hangup/></Response>`;
       return new NextResponse(fallbackTwiml, {
         headers: { 'Content-Type': 'text/xml' }
       });

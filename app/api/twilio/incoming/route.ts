@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     if (!signedUrlResponse.ok) {
       console.error('❌ Failed to get ElevenLabs signed URL');
       // Fallback to Twilio voice - no whitespace
-      const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna">Hello, this is Snoonu support. How can I help you today?</Say><Gather input="speech" action="https://flash-production-3b0c.up.railway.app/api/twilio/process" method="POST" speechTimeout="auto"><Say voice="Polly.Joanna">Please tell me about your issue.</Say></Gather><Hangup/></Response>`;
+      const fallbackTwiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna">Hello, this is Flash. How can I help you today?</Say><Gather input="speech" action="https://flash-production-3b0c.up.railway.app/api/twilio/process" method="POST" speechTimeout="auto"><Say voice="Polly.Joanna">Please tell me about your issue.</Say></Gather><Hangup/></Response>`;
       return new NextResponse(fallbackTwiml, {
         headers: { 'Content-Type': 'text/xml' }
       });

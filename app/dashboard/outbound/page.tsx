@@ -25,7 +25,7 @@ export default function OutboundCallPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phoneNumber,
-          message: "This is Snoonu support calling."
+          message: "This is Flash calling."
         })
       });
 
@@ -54,7 +54,7 @@ export default function OutboundCallPage() {
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Outbound Calling</h1>
-          <p className="text-white/60">Call drivers, customers, or merchants with AI agent (Sarah's voice from ElevenLabs)</p>
+          <p className="text-white/60">Call drivers, customers, or merchants with AI voice agent</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -104,7 +104,7 @@ export default function OutboundCallPage() {
                   <div>CallSid: <span className="font-mono text-green-400">{callDetails.callSid}</span></div>
                   <div>To: <span className="font-mono">{callDetails.to}</span></div>
                   <div>From: <span className="font-mono">{callDetails.from}</span></div>
-                  <div className="text-white/60 mt-3">The phone is ringing with Sarah from ElevenLabs!</div>
+                  <div className="text-white/60 mt-3">The phone is ringing with Flash AI!</div>
                 </div>
               </div>
             )}
@@ -157,7 +157,7 @@ export default function OutboundCallPage() {
                   <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center shrink-0 mt-0.5">
                     <span className="text-green-400 font-bold text-xs">2</span>
                   </div>
-                  <div>Twilio connects to ElevenLabs agent</div>
+                  <div>Connects to Flash AI agent</div>
                 </div>
                 <div className="flex items-start gap-2">
                   <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -181,7 +181,7 @@ export default function OutboundCallPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">Voice Configuration</h3>
             <div className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium">
-              ✓ Sarah from ElevenLabs
+              ✓ Flash AI Voice
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 text-sm">
