@@ -45,7 +45,7 @@ export default function SnoonuDemoPage() {
   
   const [showRealCallModal, setShowRealCallModal] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [agentId, setAgentId] = useState("");
+  const agentId = "agent_4401kant80mjf05rz880hfjk4rmp"; // Hardcoded Flash agent
   const [isCallingReal, setIsCallingReal] = useState(false);
   const [realCallStatus, setRealCallStatus] = useState("");
 
@@ -60,8 +60,8 @@ export default function SnoonuDemoPage() {
   }, [callState]);
 
   const makeRealCall = async () => {
-    if (!phoneNumber || !agentId) {
-      alert("Please enter both phone number and agent ID");
+    if (!phoneNumber) {
+      alert("Please enter a phone number");
       return;
     }
 
@@ -589,17 +589,7 @@ export default function SnoonuDemoPage() {
                   placeholder="+974-5555-1234"
                   className="w-full glass rounded-xl px-4 py-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D92027]/50 text-lg shadow-sm"
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-500 mb-2 uppercase tracking-wider font-medium">Agent ID (optional)</label>
-                <input
-                  type="text"
-                  value={agentId}
-                  onChange={(e) => setAgentId(e.target.value)}
-                  placeholder="agent_xxx..."
-                  className="w-full glass rounded-xl px-4 py-3 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D92027]/50 shadow-sm"
-                />
+                <p className="mt-2 text-xs text-gray-400">Include country code (e.g., +1, +974)</p>
               </div>
             </div>
 
