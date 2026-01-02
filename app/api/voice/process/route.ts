@@ -88,3 +88,19 @@ async function logConversation(callSid: string, userInput: string, aiResponse: s
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
