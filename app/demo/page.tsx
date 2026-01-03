@@ -69,14 +69,14 @@ export default function SnoonuDemoPage() {
     }
 
     setIsCallingReal(true);
-    setRealCallStatus("Initiating call...");
+    setRealCallStatus("Dialing your phone...");
 
     try {
-      const response = await fetch('/api/elevenlabs/call', {
+      // Use Twilio to make actual phone call
+      const response = await fetch('/api/twilio/make-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          agentId,
           phoneNumber,
           message: "This is Flash. We're calling to assist you with your Snoonu delivery."
         })
@@ -85,14 +85,14 @@ export default function SnoonuDemoPage() {
       const data = await response.json();
 
       if (data.success) {
-        setRealCallStatus(`✓ Call initiated! Conversation ID: ${data.conversationId}`);
+        setRealCallStatus(`✓ Your phone is ringing! Call ID: ${data.callSid}`);
         setTimeout(() => {
           setShowRealCallModal(false);
           setIsCallingReal(false);
           setRealCallStatus("");
-        }, 5000);
+        }, 8000);
       } else {
-        setRealCallStatus(`✗ Error: ${data.error}`);
+        setRealCallStatus(`✗ Error: ${data.error}${data.details ? ` - ${data.details}` : ''}`);
         setIsCallingReal(false);
       }
     } catch (error: any) {
